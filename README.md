@@ -20,7 +20,8 @@ Ganache
 MetaMask
 
 Clone the repository:
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/SHARUKA-2005/HackathonProject.git
+
 cd HackathonProject
 
 Intall Dependencies:
