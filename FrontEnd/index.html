@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clothing Store DApp</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Clothing Store DApp</h1>
+        <form id="addItemForm">
+            <input type="text" id="itemName" placeholder="Item Name" required>
+            <input type="number" id="itemPrice" placeholder="Item Price" required>
+            <input type="number" id="itemQuantity" placeholder="Item Quantity" required>
+            <button type="submit">Add Item</button>
+        </form>
+        <div id="itemList">
+            <!-- Items will be displayed here -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.6.0/dist/web3.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
