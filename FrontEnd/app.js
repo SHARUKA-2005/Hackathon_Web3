@@ -1,49 +1,75 @@
 document.addEventListener('DOMContentLoaded', async () => {
-    if (window.ethereum) {
-        window.web3 = new Web3(window.ethereum);
+    // Initialize Web3
+    let web3;
+
+    if (typeof window.ethereum !== 'undefined') {
+        web3 = new Web3(window.ethereum);
         try {
-            await window.ethereum.enable();
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
             console.log('MetaMask is connected!');
         } catch (error) {
             console.error('User denied access to MetaMask');
         }
     } else {
+        web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545")); // Replace with your Ganache RPC URL
         console.error('MetaMask is not installed!');
     }
 
-    const contractAddress = 'YOUR_CONTRACT_ADDRESS'; // Replace with your deployed contract address
-    const abi = [ // Replace with your smart contract ABI
+    const contractAddress = '0x1C7892AA9c0C43b2d8d7e34d6A7f5f40A663C21E'; // Replace with your deployed contract address
+    const contractABI = [
         {
-            "constant": false,
+            "anonymous": false,
             "inputs": [
-                {
-                    "name": "_name",
-                    "type": "string"
-                },
-                {
-                    "name": "_price",
-                    "type": "uint256"
-                },
-                {
-                    "name": "_quantity",
-                    "type": "uint256"
-                }
+                {"indexed": false, "internalType": "uint256", "name": "id", "type": "uint256"},
+                {"indexed": false, "internalType": "string", "name": "name", "type": "string"},
+                {"indexed": false, "internalType": "uint256", "name": "price", "type": "uint256"},
+                {"indexed": false, "internalType": "uint256", "name": "quantity", "type": "uint256"}
+            ],
+            "name": "ItemAdded",
+            "type": "event"
+        },
+        {
+            "inputs": [],
+            "name": "itemCount",
+            "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "stateMutability": "view",
+            "type": "function",
+            "constant": true
+        },
+        {
+            "inputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+            "name": "items",
+            "outputs": [
+                {"internalType": "uint256", "name": "id", "type": "uint256"},
+                {"internalType": "string", "name": "name", "type": "string"},
+                {"internalType": "uint256", "name": "price", "type": "uint256"},
+                {"internalType": "uint256", "name": "quantity", "type": "uint256"}
+            ],
+            "stateMutability": "view",
+            "type": "function",
+            "constant": true
+        },
+        {
+            "inputs": [
+                {"internalType": "string", "name": "_name", "type": "string"},
+                {"internalType": "uint256", "name": "_price", "type": "uint256"},
+                {"internalType": "uint256", "name": "_quantity", "type": "uint256"}
             ],
             "name": "addItem",
             "outputs": [],
-            "payable": false,
             "stateMutability": "nonpayable",
             "type": "function"
         }
     ];
 
-    const clothingContract = new web3.eth.Contract(abi, contractAddress);
+    const contract = new web3.eth.Contract(contractABI, contractAddress);
 
     const addItemForm = document.getElementById('addItemForm');
     const itemNameInput = document.getElementById('itemName');
     const itemPriceInput = document.getElementById('itemPrice');
     const itemQuantityInput = document.getElementById('itemQuantity');
     const itemList = document.getElementById('itemList');
+    const buyButton = document.getElementById('buyButton');
 
     addItemForm.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -53,7 +79,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const itemQuantity = itemQuantityInput.value;
 
         try {
-            await clothingContract.methods.addItem(itemName, itemPrice, itemQuantity).send({ from: web3.eth.defaultAccount });
+            const accounts = await web3.eth.getAccounts();
+            await contract.methods.addItem(itemName, itemPrice, itemQuantity).send({ from: accounts[0] });
             console.log('Item added successfully!');
             itemNameInput.value = '';
             itemPriceInput.value = '';
@@ -67,9 +94,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function fetchItems() {
         itemList.innerHTML = ''; // Clear previous items
 
-        const itemCount = await clothingContract.methods.itemCount().call();
+        const itemCount = await contract.methods.itemCount().call();
         for (let i = 1; i <= itemCount; i++) {
-            const item = await clothingContract.methods.items(i).call();
+            const item = await contract.methods.items(i).call();
             const itemElement = document.createElement('div');
             itemElement.classList.add('item');
             itemElement.innerHTML = `
@@ -83,42 +110,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     fetchItems();
 
-    // Import Web3.js library
-    const Web3 = require('web3');
+    buyButton.addEventListener('click', async () => {
+        const itemId = 1; // Example item ID, you can get this dynamically based on the item being bought
+        const priceInWei = web3.utils.toWei('0.1', 'ether'); // Example price in Wei, adjust as per your contract
 
-    // Initialize Web3 with Ganache RPC URL
-let web3;
+        try {
+            const accounts = await web3.eth.getAccounts();
+            const result = await contract.methods.buyItem(itemId).send({
+                from: accounts[0],
+                value: priceInWei
+            });
 
-if (typeof window.ethereum !== 'undefined') {
-    // Use MetaMask's provider
-    web3 = new Web3(window.ethereum);
-    window.ethereum.enable(); // Prompt user to enable Metamask
-} else {
-    // Fallback to Ganache provider
-    web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:7545")); // Replace with your Ganache RPC URL
-}
-
-// Example usage: Get current Ethereum network
-web3.eth.net.getId().then(console.log);
-
-// Example usage: Get current account address
-web3.eth.getAccounts().then(accounts => console.log(accounts[0]));
-
-// Example usage: Interact with a deployed contract
-const contractABI = [
-    // ABI definition
-];
-const contractAddress = "0x123abc..."; // Replace with your deployed contract address
-const contractInstance = new web3.eth.Contract(contractABI, contractAddress);
-
-// Example: Call a method on the smart contract
-contractInstance.methods.myMethod().call()
-    .then(result => console.log(result));
-
-// Example: Send a transaction to the smart contract
-contractInstance.methods.myMethod().send({ from: accounts[0], value: web3.utils.toWei("1", "ether") })
-    .on('transactionHash', hash => console.log(hash))
-    .on('receipt', receipt => console.log(receipt));
-
-
+            console.log('Transaction successful:', result);
+            alert('Purchase successful!');
+        } catch (error) {
+            console.error('Transaction failed:', error);
+            alert('Transaction failed. Please try again.');
+        }
+    });
 });
